@@ -23,6 +23,35 @@ header{display:flex;align-items:start;justify-content:space-between;gap:12px;pad
 <div class="notice" id="notice">182일은 후반 단계야. 연구가 완료됐다면 연구원을 방어·식량으로 돌리자.</div>
 <section class="tables"><article class="card"><h2>01 · 시기별 운영 페이스</h2><div class="scroll"><table><thead><tr><th>일수</th><th>총인구</th><th>연구/턴</th><th class="phase-desc">중점 운영</th></tr></thead><tbody id="phaseRows"></tbody></table></div><small>범위는 안전한 기본 운영을 위한 제안치이며, 최적해·강제 목표가 아니야.</small></article>
 <article class="card"><h2>02 · 인구별 토마토밭 수</h2><div class="scroll"><table><thead><tr><th>총인구</th><th>주식형</th><th>혼합형</th></tr></thead><tbody id="farmRows"></tbody></table></div><small>경작지 + 물 시설 인접 보너스를 받은 토마토밭 기준. 주식형은 식량 대부분, 혼합형은 약 절반을 토마토로 확보하는 계획이야.</small></article></section>
+
+<section class="info" id="protection"><div class="eyebrow">Protection planner · 오프라인 계산</div><h2>03 · 도메인별 이벤트 / Doom 방어</h2>
+<p>위협 점 개수만으로 필요한 총량이 정해지지는 않아. <b>판정 시점의 누적 Danger + 성공 여유분</b>이 필요해. 아래는 입력 조건이 유지될 때의 100% 목표 계산이야.</p>
+<div class="scroll"><table><thead><tr><th>위험 도메인 / 누적 Danger</th><th>생산할 Protection</th></tr></thead><tbody><tr><td>Sickness · 질병</td><td>Health · 건강</td></tr><tr><td>Fear · 공포</td><td>Hope · 희망</td></tr><tr><td>Heat · 더위</td><td>Cold · 냉기</td></tr><tr><td>Cold · 추위</td><td>Heat · 온기</td></tr><tr><td>Cataclysm · 재해 (Nature 도메인)</td><td>Nature · 자연</td></tr></tbody></table></div>
+<div class="notice"><b>버전 확인:</b> 공식 위키의 오래된 힌트는 여유분을 ×3으로 설명하지만, Steam 계산 글의 2026-06-13 수정은 ×4로 정정해. 기본값은 ×4이며 게임 내부 도움말·성공률 표시와 대조해 사용해. 최신 게임 코드로 검증된 확정 공식은 아니야. 위협별 생산량과 Doom 보정도 게임 화면의 실제 수치를 우선해.</div>
+<div class="controls">
+<div><label for="pd-domain">대응할 위험 도메인</label><select id="pd-domain"><option value="Health">Sickness → Health</option><option value="Hope">Fear → Hope</option><option value="Cold">Heat → Cold</option><option value="Heat">Cold → Heat</option><option value="Nature">Cataclysm → Nature</option></select></div>
+<div><label for="pd-kind">판정 종류 (기간은 아래에서 직접 입력)</label><select id="pd-kind"><option>일반 이벤트</option><option>Doom</option></select></div>
+<div><label for="pd-rate">위협 자체의 Danger / 턴 (g)</label><input id="pd-rate" type="number" min="0" step="any" value="7"></div>
+<div><label for="pd-extra">추가 Danger / 턴 (e · 과밀·질병 등)</label><input id="pd-extra" type="number" min="0" step="any" value="0"></div>
+<div><label for="pd-danger">현재 누적 Danger (D)</label><input id="pd-danger" type="number" min="0" step="any" value="0"></div>
+<div><label for="pd-stock">현재 누적 Protection (P)</label><input id="pd-stock" type="number" min="0" step="any" value="0"></div>
+<div><label for="pd-turns">판정까지 남은 생산 횟수 (n · 판정 턴 포함 여부 확인)</label><input id="pd-turns" type="number" min="0" step="1" value="5"></div>
+<div><label for="pd-output">예정 Protection / 턴 (q)</label><input id="pd-output" type="number" min="0" step="any" value="10"></div>
+<div><label for="pd-factor">100% 여유분 계수 (k)</label><select id="pd-factor"><option value="4">×4 · 2026 수정 글 기준 (기본)</option><option value="3">×3 · 구버전 위키 힌트 기준</option></select></div>
+</div>
+<div class="dash" aria-live="polite"><div class="card"><div class="sub">판정 시 필요 총량</div><div class="num" id="pd-total"></div><div class="sub" id="pd-unit"></div></div><div class="card"><div class="sub">지금부터 추가 확보량</div><div class="num" id="pd-needed"></div><div class="sub">현재 비축 차감</div></div><div class="card"><div class="sub">필요 최소 생산 / 턴</div><div class="num" id="pd-per"></div><div class="sub">정수 단위 올림</div></div></div>
+<p class="notice" id="pd-result" role="status"></p>
+<p><b>산식:</b> 예상 Danger = D + n × (g + e)<br>100% 목표 = ⌈예상 Danger + k × g⌉<br>추가 확보량 = max(0, 목표 − P) · 최소 생산/턴 = ⌈추가 확보량 ÷ n⌉</p>
+<p class="muted">추가 위험 e는 누적 Danger에 더하고 여유분 k×g에는 중복 가산하지 않는 모델이야. 위험 생성이 멈춘 턴, 생산 중단, 자원 고갈, 중간 이벤트·리셋, 위협·계절 변화가 있으면 구간별로 다시 계산해. n=0이면 비축만 비교해.</p>
+<h2 style="margin-top:18px">위협 수준별 빠른 비교 · Normal 참고 생산량</h2>
+<p class="muted">현재 누적량 0, 추가 위험 0일 때의 예시. 이벤트와 Doom 각각 <b>판정 중 실제 적용되는 위협 수준</b>의 행을 골라. Doom의 임시 위협 상승이 이미 화면에 반영됐다면 다시 더하지 마. 기간·생산량은 고정 규칙이 아니라 수정 가능한 예시야.</p>
+<div class="controls"><div><label for="pd-eventn">일반 이벤트의 생산 횟수 예시</label><input id="pd-eventn" type="number" min="0" step="1" value="5"></div><div><label for="pd-doomn">Doom의 생산 횟수 예시</label><input id="pd-doomn" type="number" min="0" step="1" value="8"></div></div>
+<div class="scroll"><table><thead><tr><th>실효 위협</th><th>g / 턴 (수정 가능)</th><th>100% 여유 k×g</th><th>이벤트 목표</th><th>Doom 목표</th></tr></thead><tbody id="pd-levels"></tbody></table></div>
+<p class="muted">일반 목표 = (이벤트 생산 횟수 + k) × g · Doom 목표 = (Doom 생산 횟수 + k) × g. 같은 행의 두 값은 같은 실효 위협을 가정해. 난이도를 단순 배수로 곱하지 말고 실제 g로 바꿔. 7단계의 45/턴은 오래된 값이며 개발자 변경 기록에 50으로 상향되어 여기서는 50을 사용했어.</p>
+<details><summary>계산 근거와 사용 순서</summary><ol><li>게임의 해당 도메인에서 누적 Danger / Protection과 위협에 의한 생산량을 읽어.</li><li>Doom·계절 보정 후의 실제 위협 생산량 g와 추가 위험 e를 분리해 입력해. 표시된 총 위험 생산량을 g와 e 양쪽에 넣지 마.</li><li>남은 생산 횟수와 비축량을 입력하고 결과를 확인해. Doom 선택만으로 기간이나 위협을 자동 변경하지 않아.</li><li>판정 직전 게임의 성공률 100%를 최종 확인해. 이 계산기는 입력값과 선택한 버전 기준에 따른 계획 도구야.</li></ol>
+<p>확인일 2026-10-27. <a href="https://dotage.wiki.gg/wiki/Domains">공식 위키 · 도메인</a> · <a href="https://dotage.wiki.gg/wiki/Hints">공식 위키 · 구버전 ×3 힌트</a> · <a href="https://steamcommunity.com/app/638510/discussions/0/4029094770943829789/">Steam 계산 글 · 2026 수정 (×4, 커뮤니티 자료)</a> · <a href="https://steamcommunity.com/app/638510/discussions/0/3901864363063519643/">개발자 변경 기록 · 7단계 생산량</a>. 위키 난이도 표는 시기·수치가 혼재되어 확정 100% 표로 전재하지 않았어.</p></details>
+</section>
+
 <section class="info"><h2>운영할 때 가장 중요한 기준</h2><ul><li><b>밭 1개의 평균 공급력:</b> 최적 배치에서 수확일 약 6개. 재파종 주기를 반영하면 연중 작물 재배 가능 시즌에서 약 3~3.3개/턴 정도를 기준으로 계산해. 물·씨앗·노동력 공급이 필요해.</li><li><b>겨울:</b> 토마토 생산 중단. 첫 겨울 <span class="pill">116~135일</span>, 둘째 겨울 <span class="pill">251~280일</span>. 사냥·낚시·조리·비축 식량을 따로 준비해.</li><li><b>과밀:</b> 성인 비VIP 기준 35명까지 위협 가산 0, 37~43명 +1, 44~47명 +2, 48~50명 +3 (Normal). 아기는 전체 식량 소비량에 포함되지만 과밀 계산은 아기 제외.</li><li><b>연구:</b> 방어력이 부족한 재난이 시작되면 연구 건물을 잠시 멈추고 인력을 재배치. 모든 기술을 연구했다면 연구량은 0이어도 돼.</li></ul></section>
 <div class="foot">자료 확인: <a href="https://dotage.wiki.gg/wiki/Tomato_Field">토마토밭</a> · <a href="https://dotage.wiki.gg/wiki/Seasons">계절</a> · <a href="https://dotage.wiki.gg/wiki/Pips">주민/과밀</a> · <a href="https://dotage.wiki.gg/wiki/Difficulty_levels">난이도</a>. 연구·인구 목표 및 밭 수는 플레이를 위한 추정 권장값 (2026.10 작성).</div>
 </main>
@@ -56,4 +85,18 @@ function update(){
 }
 ['turn','pop','mode','researched'].forEach(id=>$(id).addEventListener('input',update));
 update();
+
+const pdRates=[1,3,7,13,20,30,50];
+$('pd-levels').innerHTML=pdRates.map((g,i)=>`<tr><td>${i+1}</td><td><input aria-label="실효 위협 ${i+1}의 턴당 위험" id="pd-level-${i}" type="number" min="0" step="any" value="${g}" style="max-width:110px;font-size:14px"></td><td id="pd-margin-${i}"></td><td id="pd-event-${i}"></td><td id="pd-doom-${i}"></td></tr>`).join('');
+function pdNum(id){const el=$(id),v=Number(el.value);return el.value.trim()===''||!Number.isFinite(v)||v<0||(el.step==='1'&&!Number.isInteger(v))?NaN:v;}
+function pdPlan(d,p,g,e,n,q,k){const total=Math.ceil(d+n*(g+e)+k*g),needed=Math.max(0,total-p);return {total,needed,per:n?Math.ceil(needed/n):null,projected:p+n*q};}
+function pdUpdate(){
+const ids=['pd-danger','pd-stock','pd-rate','pd-extra','pd-turns','pd-output','pd-factor'];
+const vals=ids.map(pdNum);
+if(vals.some(Number.isNaN)){['pd-total','pd-needed','pd-per'].forEach(id=>$(id).textContent='—');$('pd-result').textContent='빈칸·음수·잘못된 숫자를 확인해. 생산 횟수는 0 이상의 정수여야 해.';}
+else{const [d,p,g,e,n,q,k]=vals,r=pdPlan(d,p,g,e,n,q,k);$('pd-total').textContent=r.total;$('pd-needed').textContent=r.needed;$('pd-per').textContent=n?r.per:(r.needed?'지금 확보':'0');$('pd-unit').textContent=$('pd-domain').value+' 포인트 · '+$('pd-kind').value;$('pd-result').textContent=`예상 Danger ${d+n*(g+e)} + 여유 ${k*g} = 목표 ${r.total}. 예정 생산 반영 Protection ${r.projected}: `+(r.projected>=r.total?'입력 조건에서 목표 충족.':`목표까지 ${Math.ceil(r.total-r.projected)} 포인트 부족.`);}
+const k=pdNum('pd-factor'),en=pdNum('pd-eventn'),dn=pdNum('pd-doomn');pdRates.forEach((_,i)=>{const g=pdNum('pd-level-'+i);$('pd-margin-'+i).textContent=Number.isFinite(g*k)?Math.ceil(g*k):'—';$('pd-event-'+i).textContent=Number.isFinite((en+k)*g)?Math.ceil((en+k)*g):'—';$('pd-doom-'+i).textContent=Number.isFinite((dn+k)*g)?Math.ceil((dn+k)*g):'—';});
+}
+$('protection').addEventListener('input',pdUpdate);pdUpdate();
+
 </script></body></html>
